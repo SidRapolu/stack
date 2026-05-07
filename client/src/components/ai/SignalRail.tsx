@@ -4,12 +4,16 @@ import styles from './SignalRail.module.css'
 export function SignalRail() {
   const { signals, dismissSignal, selectedRailSignalId, setSelectedRailSignalId } = useStore()
 
-  const completions = signals.filter((s) => s.type === 'completion' && !s.dismissed)
-  const insights = signals.filter(
-    (s) => s.type !== 'completion' && !s.dismissed
+  // intent is shown in its own card — never in the signal list
+  const intentSignal = signals.filter((s) => s.type === 'intent' as never && !s.dismissed).at(-1)
+
+  // only show non-intent, non-dismissed signals
+  const activeSignals = signals.filter(
+    (s) => s.type !== ('intent' as never) && !s.dismissed
   )
 
-  const intentSignal = signals.find((s) => s.type === 'intent' as never)
+  const completions = activeSignals.filter((s) => s.type === 'completion')
+  const insights = activeSignals.filter((s) => s.type !== 'completion')
 
   return (
     <aside className={styles.rail}>
@@ -30,7 +34,7 @@ export function SignalRail() {
           </div>
         </div>
 
-        {/* completions */}
+        {/* completions — linked to ghost node */}
         {completions.length > 0 && (
           <>
             <div className={styles.sectionLabel}>completions</div>
@@ -43,7 +47,11 @@ export function SignalRail() {
                 <div className={styles.itemTop}>
                   <div className={`${styles.itemDot} ${styles.dotCompletion}`} />
                   <div className={styles.itemTitle}>{s.title}</div>
-                  <div className={styles.itemConf}>{s.confidence}</div>
+                  <button
+                    className={styles.dismissBtn}
+                    onClick={(e) => { e.stopPropagation(); dismissSignal(s.id) }}
+                    title="dismiss"
+                  >✕</button>
                 </div>
                 <div className={styles.itemDetail}>{s.detail}</div>
               </div>
@@ -51,21 +59,20 @@ export function SignalRail() {
           </>
         )}
 
-        {/* other insights */}
+        {/* conflict / failure insights */}
         {insights.length > 0 && (
           <>
             <div className={styles.sectionLabel}>insights</div>
             {insights.map((s) => (
-              <div
-                key={s.id}
-                className={styles.item}
-                onClick={() => dismissSignal(s.id)}
-                title="click to dismiss"
-              >
+              <div key={s.id} className={styles.item}>
                 <div className={styles.itemTop}>
                   <div className={`${styles.itemDot} ${styles[`dot_${s.type}`]}`} />
                   <div className={styles.itemTitle}>{s.title}</div>
-                  <div className={styles.itemConf}>{s.confidence}</div>
+                  <button
+                    className={styles.dismissBtn}
+                    onClick={() => dismissSignal(s.id)}
+                    title="dismiss"
+                  >✕</button>
                 </div>
                 <div className={styles.itemDetail}>{s.detail}</div>
               </div>
@@ -73,7 +80,7 @@ export function SignalRail() {
           </>
         )}
 
-        {signals.filter((s) => !s.dismissed).length === 0 && (
+        {activeSignals.length === 0 && (
           <div className={styles.empty}>signals appear as you build...</div>
         )}
       </div>

@@ -92,30 +92,37 @@ export async function scanTopology(
 ): Promise<AISignal[]> {
   if (nodes.length < 2) return []
 
-  const ctx = buildTopologyContext(nodes, edges)
-  const prompt = `You are a senior cloud architect reviewing a system design.
-${ctx}
+  // build a deduplicated, clean node list
+  const uniqueNodeNames = [...new Set(nodes.map((n) => n.service.name))]
+  const edgeList = edges
+    .map((e) => {
+      const from = nodes.find((n) => n.id === e.source)
+      const to = nodes.find((n) => n.id === e.target)
+      return from && to ? `${from.service.name} → ${to.service.name}` : null
+    })
+    .filter(Boolean)
+    .join(', ')
 
-Analyze this architecture for:
-1. Missing components that structurally must exist (completion signals)
-2. Architectural conflicts or anti-patterns (conflict signals)
-3. Failure cascade risks (failure_mode signals)
+  const prompt = `You are a senior cloud architect reviewing a system design in progress.
 
-Only surface signals you are highly confident about. Do not be noisy.
-Return empty array if the architecture looks sound.
-Maximum 3 signals total.
+Services on canvas (${uniqueNodeNames.length} total): ${uniqueNodeNames.join(', ')}.
+Connections: ${edgeList || 'none yet'}.
 
-Respond ONLY with a JSON array, no markdown:
-[{
-  "type": "completion"|"conflict"|"failure_mode",
-  "confidence": "high"|"medium",
-  "title": "short label under 6 words",
-  "detail": "concrete explanation under 20 words",
-  "suggestedService": "service name to add (for completion) or null",
-  "targetService": "service name this applies to or null"
-}]
+Your job: identify the most important architectural gap or issue. Return a maximum of 2 signals.
 
-Valid services: ${VALID_SERVICE_NAMES}`
+Rules:
+- Only return signals you are architecturally certain about (high confidence only)
+- "completion" = a service that is structurally required but missing (e.g. no DLQ on SQS, no cache on high-read DB)
+- "conflict" = two services or connections that are architecturally incompatible or backwards
+- "failure_mode" = a single point of failure or cascade risk in the current topology
+- Do NOT comment on services that are not on the canvas
+- Do NOT hallucinate duplicates — if a service appears once in the list, it exists exactly once
+- Return empty array [] if the architecture looks reasonable for its current stage
+
+Respond ONLY with a JSON array, no markdown, no explanation:
+[{"type":"completion"|"conflict"|"failure_mode","confidence":"high","title":"max 5 words","detail":"max 15 words","suggestedService":"exact service name or null","targetService":"exact service name from canvas or null"}]
+
+Valid service names: ${VALID_SERVICE_NAMES}`
 
   const text = await callAPI({ prompt, type: 'scan' })
   const parsed = JSON.parse(text.replace(/```json|```/g, '').trim()) as Array<{
@@ -127,19 +134,23 @@ Valid services: ${VALID_SERVICE_NAMES}`
     targetService: string | null
   }>
 
-  return parsed.map((s) => {
-    const targetNode = s.targetService
-      ? nodes.find((n) => n.service.name === s.targetService)
-      : undefined
-    return makeSignal(s.type, s.title, s.detail, {
-      confidence: s.confidence,
-      targetNodeId: targetNode?.id,
-      suggestedService: s.suggestedService ?? undefined,
+  // only keep high confidence, max 2
+  return parsed
+    .filter((s) => s.confidence === 'high')
+    .slice(0, 2)
+    .map((s) => {
+      const targetNode = s.targetService
+        ? nodes.find((n) => n.service.name === s.targetService)
+        : undefined
+      return makeSignal(s.type, s.title, s.detail, {
+        confidence: s.confidence,
+        targetNodeId: targetNode?.id,
+        suggestedService: s.suggestedService ?? undefined,
+      })
     })
-  })
 }
 
-// ── Debounced trigger — fires scan and pushes signals to store ──
+// ── Debounced trigger — atomic signal replacement ──────────────
 
 let scanTimer: ReturnType<typeof setTimeout> | null = null
 
@@ -149,8 +160,8 @@ export function triggerScan(nodes: StackNode[], edges: StackEdge[]): void {
     try {
       const { useStore } = await import('../store')
       const signals = await scanTopology(nodes, edges)
-      signals.forEach((sig) => useStore.getState().addSignal(sig))
-      // also update intent
+      // atomic replace — wipes old scan results and sets new ones
+      useStore.getState().replaceSignals(signals)
       await inferIntent(nodes, edges)
     } catch (e) {
       console.error('scan failed', e)
@@ -165,15 +176,20 @@ export async function inferIntent(
   edges: StackEdge[]
 ): Promise<void> {
   if (nodes.length < 2) return
-  const ctx = buildTopologyContext(nodes, edges)
-  const prompt = `You are a cloud architect. ${ctx}
+  const uniqueNames = [...new Set(nodes.map((n) => n.service.name))].join(', ')
+  const edgeList = edges
+    .map((e) => {
+      const from = nodes.find((n) => n.id === e.source)
+      const to = nodes.find((n) => n.id === e.target)
+      return from && to ? `${from.service.name} → ${to.service.name}` : null
+    })
+    .filter(Boolean)
+    .join(', ')
+  const prompt = `Services: ${uniqueNames}. Connections: ${edgeList || 'none'}.
 In one sentence under 15 words, what system is this building? Only the sentence, no preamble.`
   try {
     const text = await callAPI({ prompt, type: 'suggestions' })
     const { useStore } = await import('../store')
-    // store intent as a special signal
-    const existing = useStore.getState().signals.find((s) => s.type === 'intent' as SignalType)
-    if (existing) useStore.getState().dismissSignal(existing.id)
     useStore.getState().addSignal(
       makeSignal('intent' as SignalType, 'intent', text.trim(), { confidence: 'high' })
     )

@@ -1,11 +1,10 @@
 import styles from './Topbar.module.css'
 
-export function Topbar() {
-  const handleExport = () => {
-    // export logic will pull from store
-    console.log('export')
-  }
+interface Props {
+  onExport: () => void
+}
 
+export function Topbar({ onExport }: Props) {
   return (
     <header className={styles.topbar}>
       <div className={styles.logo}>
@@ -15,7 +14,7 @@ export function Topbar() {
         <button className={styles.btn} onClick={() => {}}>
           + custom
         </button>
-        <button className={`${styles.btn} ${styles.btnAccent}`} onClick={handleExport}>
+        <button className={`${styles.btn} ${styles.btnAccent}`} onClick={onExport}>
           export draw.io
         </button>
       </div>

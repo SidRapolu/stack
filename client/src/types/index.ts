@@ -40,6 +40,7 @@ export type SignalType =
   | 'failure_mode'    // cascade risk detected in topology
   | 'cost_shape'      // cost model misaligned with likely traffic
   | 'suggestion'      // next block suggestion after drop
+  | 'intent'
 
 export type SignalConfidence = 'high' | 'medium' | 'low'
 

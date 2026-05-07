@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import type { StackNode, StackEdge, AISignal, ChatMessage, BlockStatus } from '@/types'
 
 interface StackStore {
-  // ── Canvas ──────────────────────────────────────────────────
+  // canvas
   nodes: StackNode[]
   edges: StackEdge[]
   addNode: (node: StackNode) => void
@@ -13,70 +13,104 @@ interface StackStore {
   addEdge: (edge: StackEdge) => void
   removeEdge: (id: string) => void
 
-  // ── AI Signals ──────────────────────────────────────────────
+  // signals — strictly managed
   signals: AISignal[]
   addSignal: (signal: AISignal) => void
+  replaceSignals: (incoming: AISignal[]) => void  // replaces all non-dismissed scan signals at once
   dismissSignal: (id: string) => void
   clearSignals: () => void
 
-  // ── AI Panel ────────────────────────────────────────────────
+  // rail
+  selectedRailSignalId: string | null
+  setSelectedRailSignalId: (id: string | null) => void
+
+  // ai panel
   aiPanelOpen: boolean
   aiPanelMode: 'suggestions' | 'chat'
   setAIPanelOpen: (open: boolean) => void
   setAIPanelMode: (mode: 'suggestions' | 'chat') => void
 
-  // ── Suggestions (on drop) ───────────────────────────────────
+  // suggestions
   pendingSuggestions: AISignal[]
   setPendingSuggestions: (suggestions: AISignal[]) => void
   triggerNodeId: string | null
   setTriggerNodeId: (id: string | null) => void
 
-  // rail selection
-  selectedRailSignalId: string | null
-  setSelectedRailSignalId: (id: string | null) => void
-
-  // ── Chat ────────────────────────────────────────────────────
+  // chat
   chatMessages: ChatMessage[]
   addChatMessage: (msg: ChatMessage) => void
 
-  // ── AI loading ──────────────────────────────────────────────
+  // loading
   aiLoading: boolean
   setAILoading: (loading: boolean) => void
 }
 
-export const useStore = create<StackStore>((set) => ({
+export const useStore = create<StackStore>((set, get) => ({
   // canvas
   nodes: [],
   edges: [],
   addNode: (node) => set((s) => ({ nodes: [...s.nodes, node] })),
   updateNodePosition: (id, x, y) =>
-    set((s) => ({
-      nodes: s.nodes.map((n) => (n.id === id ? { ...n, position: { x, y } } : n)),
-    })),
+    set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, position: { x, y } } : n)) })),
   updateNodeStatus: (id, status) =>
-    set((s) => ({
-      nodes: s.nodes.map((n) => (n.id === id ? { ...n, status } : n)),
-    })),
+    set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, status } : n)) })),
   updateNodeNotes: (id, notes) =>
-    set((s) => ({
-      nodes: s.nodes.map((n) => (n.id === id ? { ...n, notes } : n)),
-    })),
+    set((s) => ({ nodes: s.nodes.map((n) => (n.id === id ? { ...n, notes } : n)) })),
   removeNode: (id) =>
     set((s) => ({
       nodes: s.nodes.filter((n) => n.id !== id),
       edges: s.edges.filter((e) => e.source !== id && e.target !== id),
+      signals: s.signals.filter((sig) => sig.targetNodeId !== id),
     })),
   addEdge: (edge) => set((s) => ({ edges: [...s.edges, edge] })),
   removeEdge: (id) => set((s) => ({ edges: s.edges.filter((e) => e.id !== id) })),
 
   // signals
   signals: [],
-  addSignal: (signal) => set((s) => ({ signals: [...s.signals, signal] })),
+
+  // addSignal: used for one-off signals (intent)
+  addSignal: (signal) =>
+    set((s) => {
+      // dedupe by type + title
+      const deduped = s.signals.filter(
+        (x) => !(x.type === signal.type && x.title === signal.title)
+      )
+      const next = [...deduped, signal]
+      // auto-select first completion if none selected
+      const sel = s.selectedRailSignalId
+      const newSel = sel && next.find((x) => x.id === sel)
+        ? sel
+        : next.find((x) => x.type === 'completion' && !x.dismissed)?.id ?? sel
+      return { signals: next, selectedRailSignalId: newSel }
+    }),
+
+  // replaceSignals: atomic replacement of all scan results — prevents stacking
+  replaceSignals: (incoming) =>
+    set((s) => {
+      // keep intent signals and dismissed signals, replace everything else
+      const keep = s.signals.filter((x) => x.type === 'intent' || x.dismissed)
+      const next = [...keep, ...incoming]
+      const sel = s.selectedRailSignalId
+      const newSel = sel && next.find((x) => x.id === sel && !x.dismissed)
+        ? sel
+        : next.find((x) => x.type === 'completion' && !x.dismissed)?.id ?? null
+      return { signals: next, selectedRailSignalId: newSel }
+    }),
+
   dismissSignal: (id) =>
-    set((s) => ({
-      signals: s.signals.map((sig) => (sig.id === id ? { ...sig, dismissed: true } : sig)),
-    })),
-  clearSignals: () => set({ signals: [] }),
+    set((s) => {
+      const next = s.signals.map((sig) => sig.id === id ? { ...sig, dismissed: true } : sig)
+      const sel = s.selectedRailSignalId === id
+        ? next.find((x) => x.type === 'completion' && !x.dismissed)?.id ?? null
+        : s.selectedRailSignalId
+      return { signals: next, selectedRailSignalId: sel }
+    }),
+
+  clearSignals: () => set({ signals: [], selectedRailSignalId: null }),
+
+  // rail
+  selectedRailSignalId: null,
+  setSelectedRailSignalId: (id) => set({ selectedRailSignalId: id }),
 
   // ai panel
   aiPanelOpen: false,
@@ -89,10 +123,6 @@ export const useStore = create<StackStore>((set) => ({
   setPendingSuggestions: (suggestions) => set({ pendingSuggestions: suggestions }),
   triggerNodeId: null,
   setTriggerNodeId: (id) => set({ triggerNodeId: id }),
-
-  // rail selection
-  selectedRailSignalId: null,
-  setSelectedRailSignalId: (id) => set({ selectedRailSignalId: id }),
 
   // chat
   chatMessages: [],

@@ -103,6 +103,22 @@
   margin-bottom: 3px;
 }
 
+.dismissBtn {
+  margin-left: auto;
+  font-size: 9px;
+  color: var(--text3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.dismissBtn:hover {
+  color: var(--acc-text);
+}
+
 .itemDot {
   width: 6px;
   height: 6px;
