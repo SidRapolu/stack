@@ -1,0 +1,163 @@
+.node {
+  min-width: 152px;
+  background: var(--bg2);
+  border: 0.5px solid var(--border2);
+  border-radius: var(--r);
+  position: relative;
+  transition: border-color 0.12s;
+}
+
+.node:hover {
+  border-color: var(--border);
+}
+
+.selected {
+  border-color: var(--acc) !important;
+  box-shadow: 0 0 0 1px var(--acc-bg);
+}
+
+.port {
+  width: 10px !important;
+  height: 10px !important;
+  background: var(--bg2) !important;
+  border: 2px solid var(--acc-border) !important;
+  opacity: 0;
+  transition: opacity 0.1s;
+}
+
+.node:hover .port,
+.node:hover .portTop,
+.node:hover .portBottom {
+  opacity: 1;
+}
+
+.portTop {
+  composes: port;
+}
+
+.portBottom {
+  composes: port;
+}
+
+.port:hover {
+  background: var(--acc-text) !important;
+  opacity: 1;
+}
+
+/* signal badges */
+.badge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid var(--bg);
+  z-index: 20;
+  cursor: pointer;
+}
+
+.badgeConflict {
+  background: var(--signal-conflict);
+  right: 8px;
+}
+
+.badgeFailure {
+  background: var(--signal-failure);
+}
+
+/* header */
+.header {
+  padding: 8px 9px 6px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.iconBtn {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  color: var(--text3);
+  transition: color 0.1s;
+}
+
+.iconBtn svg {
+  width: 11px;
+  height: 11px;
+  pointer-events: none;
+}
+
+.iconBtn:hover {
+  color: var(--text2);
+}
+
+.iconBtnActive {
+  color: var(--acc-text);
+}
+
+/* body */
+.body {
+  padding: 6px 9px 8px;
+}
+
+.category {
+  font-size: 8px;
+  color: var(--text3);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.statuses {
+  display: flex;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+
+.status {
+  font-size: 8px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  cursor: pointer;
+  border: 0.5px solid transparent;
+  opacity: 0.3;
+  transition: opacity 0.1s;
+}
+
+.statusActive {
+  opacity: 1;
+}
+
+.status_proposed { background: rgba(59,130,246,.15); color: #60a5fa; border-color: rgba(59,130,246,.3); }
+.status_decided  { background: rgba(34,197,94,.15);  color: #4ade80; border-color: rgba(34,197,94,.3); }
+.status_inuse    { background: rgba(234,179,8,.15);  color: #facc15; border-color: rgba(234,179,8,.3); }
+.status_deprecated { background: var(--acc-bg); color: var(--acc-text); border-color: var(--acc-border); }

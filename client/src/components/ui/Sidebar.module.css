@@ -1,0 +1,71 @@
+.sidebar {
+  width: 180px;
+  background: var(--bg2);
+  border-right: 0.5px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.header {
+  padding: 9px 11px 6px;
+  font-size: 8px;
+  color: var(--text3);
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  border-bottom: 0.5px solid var(--border);
+  flex-shrink: 0;
+}
+
+.body {
+  overflow-y: auto;
+  flex: 1;
+  padding: 4px;
+}
+
+.categoryLabel {
+  font-size: 8px;
+  color: var(--text3);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 6px 5px 2px;
+}
+
+.serviceBlock {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  border-radius: var(--r-sm);
+  cursor: grab;
+  margin-bottom: 1px;
+  border: 0.5px solid transparent;
+  user-select: none;
+  transition: background 0.1s, border-color 0.1s;
+}
+
+.serviceBlock:hover {
+  background: var(--bg3);
+  border-color: var(--border);
+}
+
+.serviceBlock:active {
+  cursor: grabbing;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  flex-shrink: 0;
+}
+
+.name {
+  font-size: 9px;
+  color: var(--text2);
+}
