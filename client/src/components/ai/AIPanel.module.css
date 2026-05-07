@@ -47,6 +47,31 @@
   flex-direction: column;
   max-height: min(400px, 60vh);
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+}
+
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nw-resize;
+  z-index: 10;
+  border-radius: var(--r) 0 0 0;
+  /* subtle visual indicator */
+  background: linear-gradient(
+    135deg,
+    var(--acc-border) 0%,
+    var(--acc-border) 30%,
+    transparent 30%
+  );
+  opacity: 0.4;
+  transition: opacity 0.15s;
+}
+
+.resizeHandle:hover {
+  opacity: 1;
 }
 
 .header {

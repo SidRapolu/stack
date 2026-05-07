@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import type { Node, Edge } from 'reactflow'
 import { useStore } from '../../store'
 import { findService } from '../../lib/services'
@@ -27,7 +27,33 @@ export function AIPanel({ setRFNodes, setRFEdges }: Props) {
   const [chatOpen, setChatOpen] = useState(false)
   const [chatInput, setChatInput] = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  const [size, setSize] = useState({ width: 260, height: 400 })
+  const isResizing = useRef(false)
+  const resizeStart = useRef({ x: 0, y: 0, w: 0, h: 0 })
   const msgsRef = useRef<HTMLDivElement>(null)
+
+  const onResizeMouseDown = useCallback((e: React.MouseEvent) => {
+    e.preventDefault()
+    isResizing.current = true
+    resizeStart.current = { x: e.clientX, y: e.clientY, w: size.width, h: size.height }
+
+    const onMove = (ev: MouseEvent) => {
+      if (!isResizing.current) return
+      const dw = resizeStart.current.x - ev.clientX // dragging left = wider
+      const dh = resizeStart.current.y - ev.clientY // dragging up = taller
+      setSize({
+        width: Math.min(Math.max(resizeStart.current.w + dw, 220), 520),
+        height: Math.min(Math.max(resizeStart.current.h + dh, 200), 700),
+      })
+    }
+    const onUp = () => {
+      isResizing.current = false
+      window.removeEventListener('mousemove', onMove)
+      window.removeEventListener('mouseup', onUp)
+    }
+    window.addEventListener('mousemove', onMove)
+    window.addEventListener('mouseup', onUp)
+  }, [size])
 
   useEffect(() => {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight
@@ -84,7 +110,8 @@ export function AIPanel({ setRFNodes, setRFEdges }: Props) {
   }
 
   return (
-    <div className={styles.panel}>
+    <div className={styles.panel} style={{ width: size.width, maxHeight: size.height }}>
+      <div className={styles.resizeHandle} onMouseDown={onResizeMouseDown} title="drag to resize" />
       <div className={styles.header}>
         <div className={styles.dot} />
         <div className={styles.label}>stack AI</div>

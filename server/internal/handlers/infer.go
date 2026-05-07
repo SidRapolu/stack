@@ -5,12 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"os"
 )
 
 const anthropicURL = "https://api.anthropic.com/v1/messages"
-const model = "claude-sonnet-4-20250514"
+const model = "claude-sonnet-4-6"
 
 // ── Request types from client ──────────────────────────────────
 
@@ -113,6 +114,7 @@ func callAnthropic(req anthropicRequest) (string, error) {
 	}
 
 	if resp.StatusCode != http.StatusOK {
+		log.Printf("anthropic error %d: %s", resp.StatusCode, respBody)
 		return "", fmt.Errorf("anthropic returned %d: %s", resp.StatusCode, respBody)
 	}
 
