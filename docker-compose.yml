@@ -1,0 +1,16 @@
+# Local Postgres + pgvector for development.
+#   docker compose up -d
+# Then DATABASE_URL=postgresql://stack:stack@localhost:5432/stack
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: stack
+      POSTGRES_PASSWORD: stack
+      POSTGRES_DB: stack
+    ports:
+      - "5432:5432"
+    volumes:
+      - stack_pgdata:/var/lib/postgresql/data
+volumes:
+  stack_pgdata:

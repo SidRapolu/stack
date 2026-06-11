@@ -1,9 +1,0 @@
-{
-  "name": "stack",
-  "private": true,
-  "workspaces": ["client"],
-  "scripts": {
-    "dev": "npm run dev --workspace=client",
-    "build": "npm run build --workspace=client"
-  }
-}

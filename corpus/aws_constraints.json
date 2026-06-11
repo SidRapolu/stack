@@ -1,0 +1,86 @@
+[
+  {
+    "service": "dynamodb",
+    "category": "limit",
+    "title": "DynamoDB Item Size Limit",
+    "content": "The maximum size of any item in DynamoDB, including all attribute names and values, is 400 KB. Designs that store large blobs or unbounded lists directly in an item will hit this ceiling; the common pattern is to store large objects in S3 and keep only a pointer in the DynamoDB item.",
+    "source_url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ServiceQuotas.html"
+  },
+  {
+    "service": "dynamodb",
+    "category": "best_practice",
+    "title": "DynamoDB Partition Key Cardinality",
+    "content": "DynamoDB partitions data by the partition key. Low-cardinality partition keys concentrate traffic onto few partitions, creating hot partitions that throttle even when total provisioned capacity is high. A monotonically increasing key such as a timestamp also creates a hot partition because all writes target the newest partition.",
+    "source_url": "https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/bp-partition-key-design.html"
+  },
+  {
+    "service": "sqs",
+    "category": "limit",
+    "title": "SQS Standard Queue Delivery Semantics",
+    "content": "Amazon SQS standard queues provide at-least-once delivery, which means a message can occasionally be delivered more than once, and do not guarantee ordering. Consumers must be idempotent to tolerate duplicate deliveries. For exactly-once processing and strict ordering, use an SQS FIFO queue instead, accepting its lower throughput ceiling.",
+    "source_url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/standard-queues.html"
+  },
+  {
+    "service": "sqs",
+    "category": "limit",
+    "title": "SQS Message Size Limit",
+    "content": "The maximum size of an SQS message is 256 KB. Payloads larger than 256 KB must use the SQS Extended Client Library, which stores the body in S3 and passes a reference through the queue. Queues are for coordination and small payloads, not bulk data transfer.",
+    "source_url": "https://docs.aws.amazon.com/AWSSimpleQueueService/latest/SQSDeveloperGuide/quotas-messages.html"
+  },
+  {
+    "service": "lambda",
+    "category": "limit",
+    "title": "Lambda Execution Timeout",
+    "content": "The maximum execution duration for a single AWS Lambda invocation is 15 minutes (900 seconds). Workloads needing longer should use ECS, Fargate, or Step Functions to orchestrate work across invocations. A synchronous API call backed by a long-running Lambda will also exceed typical API Gateway timeouts well before 15 minutes.",
+    "source_url": "https://docs.aws.amazon.com/lambda/latest/dg/gettingstarted-limits.html"
+  },
+  {
+    "service": "lambda",
+    "category": "integration",
+    "title": "Lambda and Relational Database Connections",
+    "content": "Lambda scales by creating many concurrent execution environments, each of which may open its own database connection. Pointing high-concurrency Lambda functions directly at an RDS instance can exhaust the database connection pool, because connections grow with Lambda concurrency rather than being shared. Use Amazon RDS Proxy to pool and reuse connections between Lambda and RDS.",
+    "source_url": "https://docs.aws.amazon.com/lambda/latest/dg/services-rds.html"
+  },
+  {
+    "service": "apigateway",
+    "category": "limit",
+    "title": "API Gateway Integration Timeout",
+    "content": "Amazon API Gateway enforces a maximum integration timeout of 29 seconds for REST and HTTP APIs. Any backend integration, including a Lambda function, that takes longer than 29 seconds returns a 504 Gateway Timeout to the client even though the backend may keep running. Long-running operations should be made asynchronous: accept the request, enqueue the work, and return a job identifier the client can poll.",
+    "source_url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html"
+  },
+  {
+    "service": "apigateway",
+    "category": "integration",
+    "title": "API Gateway to Lambda Timeout Cascade",
+    "content": "When API Gateway fronts a Lambda function, the gateway 29-second integration timeout caps the effective request duration regardless of the Lambda 15-minute limit. A Lambda that runs longer than 29 seconds behind API Gateway will have its response discarded and the client will see a 504, while the Lambda continues to run and bill. Synchronous gateway-to-Lambda chains must complete within 29 seconds.",
+    "source_url": "https://docs.aws.amazon.com/apigateway/latest/developerguide/limits.html"
+  },
+  {
+    "service": "s3",
+    "category": "best_practice",
+    "title": "S3 Strong Read-After-Write Consistency",
+    "content": "Amazon S3 provides strong read-after-write consistency for PUT and DELETE of objects in all regions. A process that writes an object and then immediately reads it will see the latest version. S3 is object storage, not a low-latency database; using it as a high-frequency key-value store for small records incurs per-request latency and cost that DynamoDB avoids.",
+    "source_url": "https://docs.aws.amazon.com/AmazonS3/latest/userguide/Welcome.html"
+  },
+  {
+    "service": "elasticache",
+    "category": "best_practice",
+    "title": "ElastiCache as a Cache, Not a System of Record",
+    "content": "Amazon ElastiCache is an in-memory cache and should not be treated as a durable system of record. Data can be evicted under memory pressure or lost on node failure depending on configuration. A design that writes data only to ElastiCache without a durable backing store risks data loss. Use a cache in front of a durable store such as RDS or DynamoDB, not in place of one.",
+    "source_url": "https://docs.aws.amazon.com/AmazonElastiCache/latest/red-ug/WhatIs.html"
+  },
+  {
+    "service": "rds",
+    "category": "limit",
+    "title": "RDS Maximum Database Connections",
+    "content": "Amazon RDS instances have a maximum connection count that scales with instance size; smaller instance classes permit only a few hundred connections. Exceeding the limit rejects new connections. High-concurrency clients should pool connections, and serverless compute such as Lambda should front RDS with RDS Proxy to avoid exhausting the connection limit.",
+    "source_url": "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/CHAP_Limits.html"
+  },
+  {
+    "service": "kinesis",
+    "category": "limit",
+    "title": "Kinesis Data Streams Shard Throughput",
+    "content": "Each shard in a Kinesis Data Stream supports up to 1 MB per second or 1,000 records per second for writes and up to 2 MB per second for reads. Throughput scales by adding shards; a stream that exceeds a single shard without enough shards throttles producers with ProvisionedThroughputExceededException. Capacity planning for Kinesis is explicit shard math.",
+    "source_url": "https://docs.aws.amazon.com/streams/latest/dev/service-sizes-and-limits.html"
+  }
+]
